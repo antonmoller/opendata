@@ -6,7 +6,7 @@ use common::{
 use std::sync::Arc;
 
 use crate::error::{Error, Result};
-use crate::model::Config;
+use crate::model::{AttributeValue, Config};
 use crate::serde::centroid_info::CentroidInfoValue;
 use crate::serde::centroid_stats::CentroidStatsValue;
 use crate::serde::centroids::CentroidsValue;
@@ -24,7 +24,7 @@ use crate::serde::vector_data::VectorDataValue;
 use crate::serde::vector_id::{ROOT_VECTOR_ID, VectorId};
 use crate::serde::vector_index_data::VectorIndexDataValue;
 use bytes::{BufMut, BytesMut};
-use std::ops::Bound::Included;
+use std::ops::Bound::{Excluded, Included, Unbounded};
 
 pub(crate) mod compaction_filter;
 pub(crate) mod compaction_scheduler;
@@ -263,8 +263,6 @@ pub(crate) trait VectorDbStorageReadExt: StorageRead {
         &self,
         range: &crate::model::Range,
     ) -> Result<roaring::RoaringTreemap> {
-        use crate::model::AttributeValue;
-        use std::ops::Bound::{Excluded, Included, Unbounded};
         let bound = |value: &std::ops::Bound<AttributeValue>, lower: bool| {
             let encode = |value: &AttributeValue, inclusive: bool| {
                 // Numeric comparison treats signed zero as equal; sortable keys distinguish it.

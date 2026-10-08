@@ -278,9 +278,10 @@ impl<T: Into<SearchResult> + Send + Sync + 'static, O: Operator<Vec<T>> + Send +
 mod tests {
     use crate::AttributeValue;
     use crate::db::{VectorDb, VectorDbRead};
-    use crate::model::{Config, Query, VECTOR_FIELD_NAME, Vector};
+    use crate::model::{Config, Query, Range, VECTOR_FIELD_NAME, Vector};
     use crate::serde::collection_meta::DistanceMetric;
     use common::{StorageBuilder, StorageConfig};
+    use std::ops::Bound::{Excluded, Included, Unbounded};
 
     fn create_config(dimensions: u16, metric: DistanceMetric) -> Config {
         Config {
@@ -295,9 +296,7 @@ mod tests {
     // --- Search tests ---
 
     #[tokio::test]
-    async fn metadata_ranges_filter_before_ann_and_bm25_limits_and_survive_replacement() {
-        use crate::model::Range;
-        use std::ops::Bound::{Excluded, Included, Unbounded};
+    async fn should_filter_metadata_ranges_before_ann_and_bm25_limits_and_survive_replacement() {
         let db = VectorDb::open(Config {
             storage: StorageConfig::InMemory,
             dimensions: 3,
@@ -429,9 +428,7 @@ mod tests {
     }
 
     #[test]
-    fn metadata_ranges_reject_invalid_bounds_without_panicking() {
-        use crate::model::Range;
-        use std::ops::Bound::{Included, Unbounded};
+    fn should_reject_invalid_metadata_range_bounds_without_panicking() {
         for (lower, upper) in [
             (Unbounded, Unbounded),
             (Included(10i64.into()), Included(0i64.into())),

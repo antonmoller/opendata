@@ -1,4 +1,5 @@
 use crate::model::AttributeValue;
+use std::ops::Bound::{Excluded, Included, Unbounded};
 
 /// A nonempty-field, typed interval over string, integer or finite float metadata.
 /// At least one bound is required. Equal exclusive bounds describe an empty interval.
@@ -15,7 +16,6 @@ impl Range {
         lower: std::ops::Bound<AttributeValue>,
         upper: std::ops::Bound<AttributeValue>,
     ) -> crate::Result<Self> {
-        use std::ops::Bound::{Excluded, Included, Unbounded};
         let field = field.into();
         fn bounded(bound: &std::ops::Bound<AttributeValue>) -> Option<&AttributeValue> {
             match bound {
@@ -56,7 +56,6 @@ impl Range {
     }
 
     pub fn matches(&self, value: &AttributeValue) -> bool {
-        use std::ops::Bound::{Excluded, Included, Unbounded};
         let lower = match &self.lower {
             Included(bound) => compare(value, bound).is_some_and(|order| !order.is_lt()),
             Excluded(bound) => compare(value, bound).is_some_and(|order| order.is_gt()),
