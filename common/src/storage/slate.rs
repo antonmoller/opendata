@@ -67,6 +67,7 @@ fn default_scan_options() -> ScanOptions {
         max_fetch_tasks: 4,
         order: IterationOrder::Ascending,
         filter_context: None,
+        tracing_options: None,
     }
 }
 
@@ -362,15 +363,18 @@ impl Storage for SlateDbStorage {
                 RecordOp::Delete(key) => batch.delete(key),
             }
         }
-        let slate_options = SlateDbWriteOptions {
-            await_durable: options.await_durable,
-            ..SlateDbWriteOptions::default()
-        };
+        let slate_options = SlateDbWriteOptions::default();
         let write_handle = self
             .db
             .write_with_options(batch, &slate_options)
             .await
             .map_err(StorageError::from_storage)?;
+        if options.await_durable {
+            write_handle
+                .await_durable()
+                .await
+                .map_err(StorageError::from_storage)?;
+        }
         Ok(WriteResult {
             seqnum: write_handle.seqnum(),
         })
@@ -385,15 +389,18 @@ impl Storage for SlateDbStorage {
         for op in records {
             batch.put_with_options(op.record.key, op.record.value, &op.options.into());
         }
-        let slate_options = SlateDbWriteOptions {
-            await_durable: options.await_durable,
-            ..SlateDbWriteOptions::default()
-        };
+        let slate_options = SlateDbWriteOptions::default();
         let write_handle = self
             .db
             .write_with_options(batch, &slate_options)
             .await
             .map_err(StorageError::from_storage)?;
+        if options.await_durable {
+            write_handle
+                .await_durable()
+                .await
+                .map_err(StorageError::from_storage)?;
+        }
         Ok(WriteResult {
             seqnum: write_handle.seqnum(),
         })
@@ -408,10 +415,7 @@ impl Storage for SlateDbStorage {
         for op in records {
             batch.merge_with_options(op.record.key, op.record.value, &op.options.into());
         }
-        let slate_options = SlateDbWriteOptions {
-            await_durable: options.await_durable,
-            ..SlateDbWriteOptions::default()
-        };
+        let slate_options = SlateDbWriteOptions::default();
         let write_handle = self
             .db
             .write_with_options(batch, &slate_options)
@@ -426,6 +430,12 @@ impl Storage for SlateDbStorage {
                     StorageError::from_storage(e)
                 }
             })?;
+        if options.await_durable {
+            write_handle
+                .await_durable()
+                .await
+                .map_err(StorageError::from_storage)?;
+        }
         Ok(WriteResult {
             seqnum: write_handle.seqnum(),
         })
@@ -439,7 +449,6 @@ impl Storage for SlateDbStorage {
         let snapshot = self
             .db
             .snapshot()
-            .await
             .map_err(StorageError::from_storage)?;
         Ok(Arc::new(SlateDbStorageSnapshot { snapshot }))
     }
@@ -467,8 +476,8 @@ impl From<Ttl> for slatedb::config::Ttl {
         match value {
             Ttl::Default => slatedb::config::Ttl::Default,
             Ttl::NoExpiry => slatedb::config::Ttl::NoExpiry,
-            Ttl::ExpireAfter(ts) => slatedb::config::Ttl::ExpireAfter(ts),
-            Ttl::ExpireAt(ts) => slatedb::config::Ttl::ExpireAt(ts),
+            Ttl::ExpireAfter(ts) => slatedb::config::Ttl::ExpireAfterMillis(ts),
+            Ttl::ExpireAt(ts) => slatedb::config::Ttl::ExpireAtMillis(ts),
         }
     }
 }
@@ -733,7 +742,7 @@ mod tests {
 
         let db = DbBuilder::new(path, object_store.clone())
             .with_settings(Settings {
-                default_ttl: Some(30_000),
+                default_ttl_millis: Some(30_000),
                 ..Default::default()
             })
             .with_system_clock(clock.clone())
@@ -810,7 +819,7 @@ mod tests {
         let slate_merge_op = SlateDbStorage::merge_operator_adapter(merge_op);
         let db = DbBuilder::new(path, object_store.clone())
             .with_settings(Settings {
-                default_ttl: Some(30_000),
+                default_ttl_millis: Some(30_000),
                 ..Default::default()
             })
             .with_system_clock(clock.clone())

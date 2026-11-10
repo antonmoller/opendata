@@ -90,7 +90,7 @@ impl StorageBuilder {
                     DbBuilder::new(slate_config.path.clone(), object_store.clone())
                         .with_settings(settings);
                 if let Some(cache) = cache.clone() {
-                    db_builder = db_builder.with_db_cache(cache);
+                    db_builder = db_builder.with_db_cache(cache, 0);
                 }
                 // Share the writer's path/object store/cache so the count path
                 // reads the same SSTs the writer produces.
@@ -409,7 +409,7 @@ pub async fn create_storage_read(
                 .with_options(reader_options)
                 .with_metrics_recorder(Arc::new(MetricsRsRecorder));
             if let Some(checkpoint_id) = runtime.checkpoint_id {
-                builder = builder.with_checkpoint_id(checkpoint_id);
+                builder = builder.with_reader_mode(slatedb::DbReaderMode::Checkpoint(checkpoint_id));
             }
             if let Some(op) = semantics.merge_operator {
                 let adapter = SlateDbStorage::merge_operator_adapter(op);
@@ -422,7 +422,7 @@ pub async fn create_storage_read(
                 builder = builder.with_segment_extractor(extractor);
             }
             if let Some(cache) = cache.clone() {
-                builder = builder.with_db_cache(cache);
+                builder = builder.with_db_cache(cache, 0);
             }
             let reader = builder.build().await.map_err(|e| {
                 StorageError::Storage(format!("Failed to create SlateDB reader: {}", e))
