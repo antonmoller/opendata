@@ -26,7 +26,7 @@ http-server = ["dep:axum", "dep:tower", "dep:clap", "dep:prometheus-client", "de
 arc-swap = "1"
 async-trait.workspace = true
 bytes.workspace = true
-common.workspace = true
+common = { workspace = true, features = ["aws"] }
 metrics.workspace = true
 prost.workspace = true
 serde.workspace = true

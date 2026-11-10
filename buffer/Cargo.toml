@@ -22,7 +22,7 @@ required-features = ["cli"]
 cli = ["dep:clap", "dep:base64", "dep:serde_json", "dep:tikv-jemallocator"]
 
 [dependencies]
-common.workspace = true
+common = { workspace = true, features = ["aws"] }
 bytes.workspace = true
 futures.workspace = true
 serde.workspace = true

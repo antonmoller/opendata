@@ -339,6 +339,7 @@ fn load_slatedb_settings(slate_config: &SlateDbStorageConfig) -> StorageResult<S
 pub fn create_object_store(config: &ObjectStoreConfig) -> StorageResult<Arc<dyn ObjectStore>> {
     match config {
         ObjectStoreConfig::InMemory => Ok(Arc::new(object_store::memory::InMemory::new())),
+        #[cfg(feature = "aws")]
         ObjectStoreConfig::Aws(aws_config) => {
             let store = object_store::aws::AmazonS3Builder::from_env()
                 .with_region(&aws_config.region)
@@ -349,6 +350,10 @@ pub fn create_object_store(config: &ObjectStoreConfig) -> StorageResult<Arc<dyn 
                 })?;
             Ok(Arc::new(store))
         }
+        #[cfg(not(feature = "aws"))]
+        ObjectStoreConfig::Aws(_) => Err(StorageError::Storage(
+            "AWS S3 support is not compiled in; enable the `aws` feature".into(),
+        )),
         ObjectStoreConfig::Local(local_config) => {
             std::fs::create_dir_all(&local_config.path).map_err(|e| {
                 StorageError::Storage(format!(

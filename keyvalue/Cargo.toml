@@ -16,6 +16,6 @@ path = "src/lib.rs"
 [dependencies]
 async-trait.workspace = true
 bytes.workspace = true
-common.workspace = true
+common = { workspace = true, features = ["aws"] }
 tokio.workspace = true
 slatedb.workspace = true

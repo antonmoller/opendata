@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 async-trait.workspace = true
-common.workspace = true
+common = { workspace = true, features = ["aws"] }
 timeseries = { path = "../timeseries", package = "opendata-timeseries" }
 tokio.workspace = true
 anyhow.workspace = true

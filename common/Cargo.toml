@@ -14,7 +14,9 @@ name = "common"
 path = "src/lib.rs"
 
 [features]
-default = []
+default = ["aws"]
+# S3 object stores, configured from the environment.
+aws = ["slatedb/aws"]
 test-utils = ["dep:arc-swap"]
 
 [dependencies]
