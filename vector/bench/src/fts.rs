@@ -240,7 +240,7 @@ pub(crate) async fn open_db(
                 ..Default::default()
             });
             let cache = Arc::new(cache) as Arc<dyn DbCache>;
-            sb = sb.map_slatedb(move |db| db.with_db_cache(cache));
+            sb = sb.map_slatedb(move |db| db.with_db_cache(cache, common::next_cache_id()));
         }
         _ => println!("  Block cache: disabled"),
     }

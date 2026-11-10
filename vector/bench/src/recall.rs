@@ -1618,7 +1618,7 @@ pub(crate) async fn open_db(
     let mut sb = StorageBuilder::new(&config.storage).await?;
     println!("  {}", describe_block_cache(dataset, default_memory_bytes));
     if let Some(cache) = build_block_cache(dataset, default_memory_bytes).await? {
-        sb = sb.map_slatedb(move |db| db.with_db_cache(cache));
+        sb = sb.map_slatedb(move |db| db.with_db_cache(cache, common::next_cache_id()));
     }
     Ok(VectorDb::open_with_storage(config.clone(), sb).await?)
 }

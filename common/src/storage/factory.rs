@@ -4,6 +4,7 @@
 //! based on configuration, supporting both InMemory and SlateDB backends.
 
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use super::config::{BlockCacheConfig, ObjectStoreConfig, SlateDbStorageConfig, StorageConfig};
 use super::in_memory::InMemoryStorage;
@@ -20,6 +21,14 @@ pub use slatedb::{CompactorBuilder, DbBuilder};
 use slatedb::{DbReader, FilterPolicy, PrefixExtractor, SstReader};
 use tracing::info;
 use uuid::Uuid;
+
+static CACHE_ID: AtomicU64 = AtomicU64::new(1);
+
+/// A process-unique `db_cache_id`: every database sharing one [`DbCache`]
+/// needs its own, or WAL SST ids from different databases collide.
+pub fn next_cache_id() -> u64 {
+    CACHE_ID.fetch_add(1, Ordering::Relaxed)
+}
 
 /// Builder for creating storage instances from configuration.
 ///
@@ -90,7 +99,7 @@ impl StorageBuilder {
                     DbBuilder::new(slate_config.path.clone(), object_store.clone())
                         .with_settings(settings);
                 if let Some(cache) = cache.clone() {
-                    db_builder = db_builder.with_db_cache(cache, 0);
+                    db_builder = db_builder.with_db_cache(cache, next_cache_id());
                 }
                 // Share the writer's path/object store/cache so the count path
                 // reads the same SSTs the writer produces.
@@ -422,7 +431,7 @@ pub async fn create_storage_read(
                 builder = builder.with_segment_extractor(extractor);
             }
             if let Some(cache) = cache.clone() {
-                builder = builder.with_db_cache(cache, 0);
+                builder = builder.with_db_cache(cache, next_cache_id());
             }
             let reader = builder.build().await.map_err(|e| {
                 StorageError::Storage(format!("Failed to create SlateDB reader: {}", e))
